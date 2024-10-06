@@ -3,7 +3,7 @@ Porting Linux Device Driver On SoC
 
 ## 환경
 - linux(Docker)
- - sl 
+  - sl 
 - qemu
 
 ## 목표
