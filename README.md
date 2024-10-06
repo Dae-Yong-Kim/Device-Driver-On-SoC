@@ -114,8 +114,6 @@ arm_ss.add(when: 'CONFIG_COMENTO', if_true: files('comento.c'))
 ```
 cd qemu-8.0.5/build; make -j<코어 개수>
 ```
-6. 
-
 
 ## 새로운 디바이스 트리 추가
 1. linux-6.5.5/arch/arm64/Kconfig.platforms에 추가
@@ -149,4 +147,14 @@ CONFIG_RD_GZIP=y //Initramfs를 사용을 위한 설정
 ```
 ARCH=arm64 make comento_defconfig
 ARCH=arm64 LLVM=1 make –j<코어 개수> //커널 빌드
+```
+
+## QEMU실행
+```
+<QEMU 디렉토리/build/qemu-system-aarch64 \
+-kernel <리눅스 디렉토리>/arch/arm64/boot/Image \
+-initrd <빌드루트 디렉토리>/output/images/rootfs.cpio.gz \
+-append "console=ttyAMA0“ \
+-dtb <리눅스 디렉토리>/arch/arm64/boot/dts/comento/comento.dtb \
+-nographic -M comento -m 1G -smp 2
 ```
