@@ -81,7 +81,7 @@ Welcome to Buildroot 까지 뜨면 성공!
 • QEMU 종료하기 : poweroff -f
 
 ## 목표
-
+![최종 목표](https://github.com/Dae-Yong-Kim/Device-Driver-On-SoC/blob/main/readmefile_image/%EC%B5%9C%EC%A2%85%20%EB%AA%A9%ED%91%9C.jpg)
 
 ## QEMU 설정
 1. qemu-8.0.5/hw/arm/Kconfig에 추가
