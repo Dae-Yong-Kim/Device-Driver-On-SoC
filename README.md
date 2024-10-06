@@ -46,8 +46,8 @@ cd buildroot-2023.08; make qemu_aarch64_virt_defconfig; make menuconfig //빌드
 	• Toolchain -> Toolchain type : External toolchain
 	• Filesystem images -> cpio the root filesystem : 선택
 	• Filesystem images -> cpio the root filesystem -> Compression method : gzip
-	• Kernel -> Linux kernel : 선택 앆함
-	• Host utilities : 모든 항목 선택 앆함
+	• Kernel -> Linux kernel : 선택 안함
+	• Host utilities : 모든 항목 선택 안함
 make -j<코어 개수> //빌드 루트 빌드
 ```
 6. 커널 빌드하기
@@ -55,7 +55,7 @@ make -j<코어 개수> //빌드 루트 빌드
 sudo apt install clang lld llvm --no-install-recommends //툴체인 대신 LLVM 사용
 cd linux-6.5.5
 cp ../buildroot-2023.08/board/qemu/aarch64-virt/linux.config arch/arm64/configs/comento_defconfig //나중에 디바이스 트리에서 사용
-ARCH=arm64 LLVM=1 make comento_d //커널 설정
+ARCH=arm64 LLVM=1 make comento_defconfig //커널 설정
 ARCH=arm64 LLVM=1 make –j<코어 개수> //커널 빌드
 ```
 7. QEMU 빌드
@@ -77,7 +77,7 @@ cd build; make –j<코어 개수> //QEMU 빌드
  -smp 2
 ```
 Welcome to Buildroot 까지 뜨면 성공!
-• 로그읶 ID : root, 비밀번호 : 없음
+• 로그인 ID : root, 비밀번호 : 없음
 • QEMU 종료하기 : poweroff -f
 
 ## 목표
@@ -100,38 +100,53 @@ config COMENTO
 ```
 2. qemu-8.0.5/configs/devices/arm-softmmu/default.mak에 추가 //추가한 config 적용
 ```
-CONFIG_
+CONFIG_COMENTO=y
 ```
 3. qemu-8.0.5/hw/arm/meson.build에 추가 //추가할 소스 코드(~~~.c)가 빌드되도록 설정
 ```
 arm_ss.add(when: 'CONFIG_COMENTO', if_true: files('comento.c'))
 ```
-4. 새로운 소스 코드(~~~.c) 추가
+4. qemu-8.0.5/hw/arm/에 새로운 소스 코드(~~~.c) 추가
 ```
 레파지토리 확인 (comento.c, kdy.c)
 ```
+5. QEMU 새로 빌드
+```
+cd qemu-8.0.5/build; make -j<코어 개수>
+```
+6. 
+
 
 ## 새로운 디바이스 트리 추가
 1. linux-6.5.5/arch/arm64/Kconfig.platforms에 추가
 ```
 config ARCH_COMENTO
- bool "Comento SoC"
- help
- This enables support for 
-Comento Soc family
+	bool "Comento SoC"
+	help
+	  This enables support for Comento Soc family
 ```
 2.linux-6.5.5/arch/arm64/boot/dts/Makefile에 추가 + 새 디렉토리 추가
 ```
-mkdir comento
+mkdir linux-6.5.5/arch/arm64/boot/dts/comento
 subdir-y += comento
 ```
-3. linux-6.5.5/arch/arm64/boot/comento/dts/Makefile에 추가
+3. linux-6.5.5/arch/arm64/boot/dts/comento/Makefile에 추가
 ```
 dtb-$(CONFIG_ARCH_COMENTO) += comento.dtb
 ```
-4. 커널 빌드핛 때 추가했던 defconfig에 추가핚 config(linux-6.5.5/arch/arm64/configs/comento_defconfig
+4. 커널 빌드할 때 추가했던 defconfig에 추가한 config(linux-6.5.5/arch/arm64/configs/comento_defconfig
 )에 추가
 ```
-CONFIG_ARCH_COMENTO=y
+CONFIG_ARCH_COMENTO=y //Makefile에서 사용
+CONFIG_BLK_DEV_INITRD=y //Initramfs를 사용을 위한 설정
+CONFIG_RD_GZIP=y //Initramfs를 사용을 위한 설정
 ```
-5. ds
+5. linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts 추가
+```
+레파지토리 확인 (comento.dts, kdy.dts)
+```
+7. linux-6.5.5/에서 defconfig 적용
+```
+ARCH=arm64 make comento_defconfig
+ARCH=arm64 LLVM=1 make –j<코어 개수> //커널 빌드
+```
