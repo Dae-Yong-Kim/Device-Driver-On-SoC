@@ -54,7 +54,7 @@ make -j<코어 개수> //빌드 루트 빌드
 ```
 sudo apt install clang lld llvm --no-install-recommends //툴체인 대신 LLVM 사용
 cd linux-6.5.5
-cp ../buildroot-2023.08/board/qemu/aarch64-virt/linux.config arch/arm64/configs/comento_defconfig
+cp ../buildroot-2023.08/board/qemu/aarch64-virt/linux.config arch/arm64/configs/comento_defconfig //나중에 디바이스 트리에서 사용
 ARCH=arm64 LLVM=1 make comento_d //커널 설정
 ARCH=arm64 LLVM=1 make –j<코어 개수> //커널 빌드
 ```
@@ -83,7 +83,7 @@ Welcome to Buildroot 까지 뜨면 성공!
 ## 목표
 ![최종 목표](https://github.com/Dae-Yong-Kim/Device-Driver-On-SoC/blob/main/readmefile_image/%EC%B5%9C%EC%A2%85%20%EB%AA%A9%ED%91%9C.jpg)
 
-## QEMU 설정
+## QEMU에 소스 코드 추가
 1. qemu-8.0.5/hw/arm/Kconfig에 추가
 ```
 config COMENTO
@@ -110,3 +110,28 @@ arm_ss.add(when: 'CONFIG_COMENTO', if_true: files('comento.c'))
 ```
 레파지토리 확인 (comento.c, kdy.c)
 ```
+
+## 새로운 디바이스 트리 추가
+1. linux-6.5.5/arch/arm64/Kconfig.platforms에 추가
+```
+config ARCH_COMENTO
+ bool "Comento SoC"
+ help
+ This enables support for 
+Comento Soc family
+```
+2.linux-6.5.5/arch/arm64/boot/dts/Makefile에 추가 + 새 디렉토리 추가
+```
+mkdir comento
+subdir-y += comento
+```
+3. linux-6.5.5/arch/arm64/boot/comento/dts/Makefile에 추가
+```
+dtb-$(CONFIG_ARCH_COMENTO) += comento.dtb
+```
+4. 커널 빌드핛 때 추가했던 defconfig에 추가핚 config(linux-6.5.5/arch/arm64/configs/comento_defconfig
+)에 추가
+```
+CONFIG_ARCH_COMENTO=y
+```
+5. ds
