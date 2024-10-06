@@ -1,6 +1,14 @@
 # Device-Driver-On-SoC
 Porting Linux Device Driver On SoC
 
+## 환경
+- linux(Docker)
+ - sl 
+- qemu
+
+## 목표
+
+
 ## QEMU 설정
 1. qemu-8.0.5/hw/arm/Kconfig에 추가
 ```
