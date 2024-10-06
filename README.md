@@ -3,8 +3,82 @@ Porting Linux Device Driver On SoC
 
 ## 환경
 - linux(Docker)
-	- sl
 - qemu
+
+## 환경 설정
+1. 도커 설치
+```
+https://docs.docker.com/get-started/get-docker/
+```
+2. WSL 버전 업데이트
+Docker Desktop - WSL kernel version too low 메세지가 나온다면 cmd에서
+```
+wsl --update
+```
+3. Docker 실행
+```
+docker run -dit --name comento ubuntu:22.04 //comento 컨테이너 만들기
+docker attach comento //컨테이너 접속
+docker start comento //컨테이너 다시 시작하기
+docker exec -it comento /bin/bash //새로운 쉘 더 띄우기
+```
+4. 커널, 빌드루트, QEMU 다운로드
+컨테이너 기본 환경 설정
+```
+apt-get update
+apt-get install sudo wget vim xz-utils
+```
+커널 빌드 루트, QEMU 다운로드
+```
+cd ~
+wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.5.5.tar.xz
+wget https://buildroot.org/downloads/buildroot-2023.08.tar.gz
+wget https://download.qemu.org/qemu-8.0.5.tar.xz
+tar xvf linux-6.5.5.tar.xz
+tar xvf buildroot-2023.08.tar.gz
+tar xvf qemu-8.0.5.tar.xz
+```
+5. 빌드루트 빌드하기
+```
+sudo apt install build-essential file bison flex cpio unzip rsync bc libncurses-dev \
+ --no-install-recommends //빌드 의존성 패키지 설치
+cd buildroot-2023.08; make qemu_aarch64_virt_defconfig; make menuconfig //빌드 루트 설정
+	• Toolchain -> Toolchain type : External toolchain
+	• Filesystem images -> cpio the root filesystem : 선택
+	• Filesystem images -> cpio the root filesystem -> Compression method : gzip
+	• Kernel -> Linux kernel : 선택 앆함
+	• Host utilities : 모든 항목 선택 앆함
+make -j<코어 개수> //빌드 루트 빌드
+```
+6. 커널 빌드하기
+```
+sudo apt install clang lld llvm --no-install-recommends //툴체인 대신 LLVM 사용
+cd linux-6.5.5
+cp ../buildroot-2023.08/board/qemu/aarch64-virt/linux.config arch/arm64/configs/comento_defconfig
+ARCH=arm64 LLVM=1 make comento_d //커널 설정
+ARCH=arm64 LLVM=1 make –j<코어 개수> //커널 빌드
+```
+7. QEMU 빌드
+```
+sudo apt install meson ninja-build pkg-config libglib2.0-dev libpixman-1-dev \
+ --no-install-recommends //빌드 의존성 패키지 설치
+cd qemu-8.0.5
+mkdir build; cd build; ../configure --target-list="aarch64-softmmu" --without-default-features //QEMU 설정
+cd build; make –j<코어 개수> //QEMU 빌드
+```
+8. 환경 테스트
+```
+<QEMU 디렉토리>/build/qemu-system-aarch64 \
+ -kernel <리눅스 디렉토리>/arch/arm64/boot/Image \
+ -drive format=raw,file=<빌드루트 디렉토리>/output/images/rootfs.ext4,if=virtio \
+ -append "root=/dev/vda console=ttyAMA0" \
+ -nographic -M virt -cpu cortex-a72 \
+ -m 2G \
+ -smp 2
+```
+Welcome to Buildroot 까지 뜨면 성공!
+• 로그읶 ID : root, 비밀번호 : 없음
+• QEMU 종료하기 : poweroff -f
 
 ## 목표
 
