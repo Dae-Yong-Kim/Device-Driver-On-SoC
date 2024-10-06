@@ -64,7 +64,7 @@ sudo apt install meson ninja-build pkg-config libglib2.0-dev libpixman-1-dev \
  --no-install-recommends //빌드 의존성 패키지 설치
 cd qemu-8.0.5
 mkdir build; cd build; ../configure --target-list="aarch64-softmmu" --without-default-features //QEMU 설정
-cd build; make –j<코어 개수> //QEMU 빌드
+make –j<코어 개수> //QEMU 빌드
 ```
 8. 환경 테스트
 ```
