@@ -83,6 +83,7 @@ Welcome to Buildroot 까지 뜨면 성공!
 ## 목표
 ![최종 목표](https://github.com/Dae-Yong-Kim/Device-Driver-On-SoC/blob/main/readmefile_image/%EC%B5%9C%EC%A2%85%20%EB%AA%A9%ED%91%9C.jpg)
 
+# Week01
 ## QEMU에 소스 코드 추가
 1. qemu-8.0.5/hw/arm/Kconfig에 추가
 ```
@@ -108,7 +109,7 @@ arm_ss.add(when: 'CONFIG_COMENTO', if_true: files('comento.c'))
 ```
 4. qemu-8.0.5/hw/arm/에 새로운 소스 코드(~~~.c) 추가
 ```
-레파지토리 확인 (comento.c, kdy.c)
+week01 레파지토리 확인 (comento.c, kdy.c)
 ```
 5. QEMU 새로 빌드
 ```
@@ -141,7 +142,7 @@ CONFIG_RD_GZIP=y //Initramfs를 사용을 위한 설정
 ```
 5. linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts 추가
 ```
-레파지토리 확인 (comento.dts, kdy.dts)
+week01 레파지토리 확인 (comento.dts, kdy.dts)
 ```
 7. linux-6.5.5/에서 defconfig 적용
 ```
@@ -158,3 +159,33 @@ ARCH=arm64 LLVM=1 make –j<코어 개수> //커널 빌드
 -dtb <리눅스 디렉토리>/arch/arm64/boot/dts/comento/comento.dtb \
 -nographic -M comento -m 1G -smp 2
 ```
+# Week02
+## QEMU에 MMIO 하드웨어 추가
+1. qemu-8.0.5/hw/misc/에 commento 디렉토리 만들기 + qemu-8.0.5/hw/misc/meson.build 맨 아래에 추가
+```
+subdir('comento')
+```
+2. qemu-8.0.5/hw/misc/comento/meson.build
+```
+softmmu_ss.add(when: 'CONFIG_COMENTO', if_true: files('mmio.c'))
+```
+3. qemu-8.0.5/hw/misc/comento/mmio.c 추가
+```
+week02 레파지토리 확인 (mmio.c)
+```
+4. qemu-8.0.5/hw/arm/comento.c에 추가
+```
+week02 레파지토리 확인 (comento.c)
+```
+5. QEMU 새로 빌드
+```
+cd qemu-8.0.5/build; make -j<코어 개수>
+```
+## MMIO 하드웨어 드라이버 만들기
+1. 디바이스 트리에 MMIO 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+```
+week02 레파지토리 확인 (comento.dts)
+```
+2. 새로운 드라이버 추가하기
+
+3. 
