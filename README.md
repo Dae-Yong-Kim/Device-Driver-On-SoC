@@ -187,5 +187,56 @@ cd qemu-8.0.5/build; make -j<코어 개수>
 week02 레파지토리 확인 (comento.dts)
 ```
 2. 새로운 드라이버 추가하기
+	2-1. linux-6.5.5/drivers/comento 디렉토리 생성 + linux-6.5.5/drivers/comento/Kconfig에 다음 추가
+```
+config COMENTO_DRIVER
+	bool "Comento SoC device drivers"
+	help
+		This enables device drivers for Comento SoC
 
-3. 
+```
+	2-2. linux-6.5.5/drivers/comento/Makefile에 다음 추가
+```
+obj-y += mmio.o
+```
+	2-3. linux-6.5.5/drivers/Kconfig에 다음 추가
+```
+source "drivers/comento/Kconfig"
+```
+	2-4. linux-6.5.5/drivers/Makefile에 다음 추가
+```
+obj-$(CONFIG_COMENTO_DRIVER) += comento/
+```
+	2-5. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가
+```
+CONFIG_COMENTO_DRIVER=y
+```
+	2-6. linux-6.5.5/에서 다음 명령어 실행
+```
+ARCH=arm64 LLVM=1 make comento_defconfig
+```
+3. linux-6.5.5/drivers/comento/mmio.c 추가
+```
+week02 레파지토리 확인 (mmio-driver.c)
+```
+4. linux-6.5.5/에서 빌드
+```
+ARCH=arm64 LLVM=1 make -j32
+```
+## 작동 확인
+1. QEMU 실행시 QMP를 보내기 위한 소켓을 추가
+```
+qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -initrd buildroot-2023.08/output/images/rootfs.cpio.gz -append "console=ttyAMA0" -dtb linux-6.5.5/arch/arm64/boot/dts/comento/comento.dtb -nographic -M comento -m 1G -smp 2 -qmp unix:/tmp/qmp.sock,server,nowait
+```
+2. QMP 스크립트를 사용
+```
+cd qemu-8.0.5/scripts/qmp
+목록 조회 : qemu/scripts/qmp/qom-list --socket /tmp/qmp.sock /machine/peripheral/
+속성 읽기 : ./qom-get --socket /tmp/qmp.sock /machine/peripheral/mmio-comento.data
+속성 쓰기 : ./qom-set --socket /tmp/qmp.sock /machine/peripheral/mmio-comento.data "문자열"
+```
+3. 리눅스에서 /dev/comento-mmio0를 통해 송수신
+```
+cat /dev/comento-mmio0
+echo "문자열" > /dev/comento-mmio0
+```
