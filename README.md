@@ -17,7 +17,7 @@ wsl --update
 ```
 3. Docker 실행
 ```
-docker run -dit --name comento ubuntu:22.04 //comento 컨테이너 만들기
+docker run --privileged -dit -v /dev:/dev -v C:\study\my_shared_directory:/root --name comento ubuntu:22.04 //comento 컨테이너 만들기
 docker attach comento //컨테이너 접속
 docker start comento //컨테이너 다시 시작하기
 docker exec -it comento /bin/bash //새로운 쉘 더 띄우기
