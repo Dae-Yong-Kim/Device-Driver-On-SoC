@@ -1,0 +1,86 @@
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/dts-v1/;
+
+/ {
+        model = "KDY SoC";
+        compatible = "kdy,kdy-v1";
+        interrupt-parent = <&gic>;
+        #size-cells = <2>;
+        #address-cells = <2>;
+
+        memory@80000000 {
+            reg = <0x00 0x80000000 0x00 0x1000000>;
+            device_type = "memory";
+        };
+        cpus {
+            #size-cells = <0>;
+            #address-cells = <1>;
+
+            cpu@0 {
+                reg = <0>;
+                enable-method = "psci";
+                compatible = "arm,cortex-a72";
+                device_type = "cpu";
+            };
+
+            cpu@1 {
+                reg = <1>;
+                enable-method = "psci";
+                compatible = "arm,cortex-a72";
+                device_type = "cpu";
+            };
+        };
+        psci {
+            migrate = <0xc4000005>;
+            cpu_on = <0xc4000003>;
+            cpu_off = <0x84000002>;
+            cpu_suspend = <0xc4000001>;
+            method = "hvc";
+            compatible = "arm,psci-1.0", "arm,psci-0.2", "arm,psci";
+        };
+
+        gic: intc@3000000 {
+            compatible = "arm,gic-v3";
+            reg = <0x00 0x4000000 0x00 0x10000>,
+                  <0x00 0x3000000 0x00 0x1000000>;
+            ranges;
+            interrupt-controller;
+            #redistributor-regions = <1>;
+            #size-cells = <2>;
+            #address-cells = <2>;
+            #interrupt-cells = <3>;
+        };
+
+        timer {
+            interrupts = <GIC_PPI 0 IRQ_TYPE_LEVEL_HIGH>,
+                         <GIC_PPI 14 IRQ_TYPE_LEVEL_HIGH>;
+            always-on;
+            compatible = "arm,armv8-timer", "arm,armv7-timer";
+        };
+
+        clock: apb-pclk {
+            clock-output-names = "clk24mhz";
+            clock-frequency = <24000000>;
+            compatible = "fixed-clock";
+            #clock-cells = <0>;
+        };
+
+
+        pl011@4010000 {
+            compatible = "arm,pl011", "arm,primecell";
+            clock-names = "uartclk", "apb_pclk";
+            clocks = <&clock>, <&clock>;
+            interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
+            reg = <0x00 0x4010000 0x00 0x1000>;
+        };
+
+
+	pl011@4020000 {
+            compatible = "arm,pl011", "arm,primecell";
+            clock-names = "uartclk", "apb_pclk";
+            clocks = <&clock>, <&clock>;
+            interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
+            reg = <0x00 0x4020000 0x00 0x1000>;
+        };
+};
