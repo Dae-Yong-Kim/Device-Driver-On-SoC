@@ -161,7 +161,7 @@ ARCH=arm64 LLVM=1 make –j<코어 개수> //커널 빌드
 ```
 # Week02
 ## QEMU에 MMIO 하드웨어 추가
-1. qemu-8.0.5/hw/misc/에 commento 디렉토리 만들기 + qemu-8.0.5/hw/misc/meson.build 맨 아래에 추가
+1. qemu-8.0.5/hw/misc/에 comento 디렉토리 만들기 + qemu-8.0.5/hw/misc/meson.build 맨 아래에 추가
 ```
 subdir('comento')
 ```
