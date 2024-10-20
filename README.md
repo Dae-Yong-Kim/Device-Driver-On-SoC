@@ -340,6 +340,7 @@ dd if=/dev/zero of=sdcard.img count=1 bs=64M
 ```
 2. 이미지 파일에 파티션 정보를 추가
 ```
+sudo apt-get fdisk
 fdisk sdcard.img
 • n<엔터> p<엔터> 1<엔터> <엔터> <엔터> w<엔터>
 ```
