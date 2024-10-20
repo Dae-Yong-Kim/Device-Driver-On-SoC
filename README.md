@@ -242,7 +242,7 @@ echo "문자열" > /dev/comento-mmio0
 ```
 # Week03
 ## QEMU에 DMA 하드웨어 추가
-1. qemu-8.0.5/hw/arm/comento.c에 추가 (DMA 하드웨어 추가 & DMA에 인터럽트 연)
+1. qemu-8.0.5/hw/arm/comento.c에 추가 (DMA 하드웨어 추가 & DMA에 신호처리 연결)
 ```
 week03 레파지토리 확인 (comento.c)
 ```
