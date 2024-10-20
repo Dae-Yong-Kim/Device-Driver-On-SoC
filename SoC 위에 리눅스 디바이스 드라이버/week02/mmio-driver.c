@@ -285,4 +285,3 @@ module_amba_driver(comento_mmio_driver);
 MODULE_AUTHOR("DDunAnt<ddunant@comento.com");
 MODULE_DESCRIPTION("ARM AMBA Comento MMIO Driver");
 MODULE_LICENSE("GPL");
-

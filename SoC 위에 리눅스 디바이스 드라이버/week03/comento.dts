@@ -1,0 +1,144 @@
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+        model = "Comento SoC";
+        compatible = "comento,comento-v1";
+        interrupt-parent = <&gic>;
+        #size-cells = <2>;
+        #address-cells = <2>;
+
+	memory@40000000 {
+	    reg = <0x00 0x40000000 0x00 0x8000000>;
+	    device_type = "memory";
+	};
+	cpus {
+	    #size-cells = <0>;
+	    #address-cells = <1>;
+
+	    cpu@0 {
+		reg = <0>;
+		enable-method = "psci";
+		compatible = "arm,cortex-a72";
+		device_type = "cpu";
+	    };
+
+	    cpu@1 {
+		reg = <1>;
+		enable-method = "psci";
+		compatible = "arm,cortex-a72";
+		device_type = "cpu";
+	    };
+	};
+	psci {
+	    migrate = <0xc4000005>;
+	    cpu_on = <0xc4000003>;
+	    cpu_off = <0x84000002>;
+	    cpu_suspend = <0xc4000001>;
+	    method = "hvc";
+	    compatible = "arm,psci-1.0", "arm,psci-0.2", "arm,psci";
+	};
+
+	gic: intc@8000000 {
+	    compatible = "arm,gic-v3";
+	    reg = <0x00 0x9000000 0x00 0x10000>,
+		  <0x00 0x8000000 0x00 0x1000000>;
+	    ranges;
+	    interrupt-controller;
+	    #redistributor-regions = <1>;
+	    #size-cells = <2>;
+	    #address-cells = <2>;
+	    #interrupt-cells = <3>;
+	};
+
+	timer {
+	    interrupts = <GIC_PPI 0 IRQ_TYPE_LEVEL_HIGH>,
+			 <GIC_PPI 14 IRQ_TYPE_LEVEL_HIGH>;
+	    always-on;
+	    compatible = "arm,armv8-timer", "arm,armv7-timer";
+	};
+
+	clock: apb-pclk {
+	    clock-output-names = "clk24mhz";
+	    clock-frequency = <24000000>;
+	    compatible = "fixed-clock";
+	    #clock-cells = <0>;
+	};
+
+        dma: pl330@9014000 {
+		compatible = "arm,pl330", "arm,primecell";
+		clock-names = "apb_pclk"; // AMBA 장치이므로 클럭 필요
+		clocks = <&clock>;
+		// DMA 컨트롤러에서 가지고 있는 인터럽트는 17개
+		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 23 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+		reg = <0x00 0x9012000 0x00 0x1000>; // MMIO로 사용할 주소 명시
+		// DMA 컨트롤러를 참조할 때 숫자는 1칸만 사용
+		#dma-cells = <1>; // 여기서의 1칸은 integer 크기를 나타냄
+        };
+
+	pl011@9010000 {
+	    compatible = "arm,pl011", "arm,primecell";
+	    clock-names = "uartclk", "apb_pclk";
+	    clocks = <&clock>, <&clock>;
+	    interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
+	    reg = <0x00 0x9010000 0x00 0x1000>;
+            dma-names = "tx";
+            dmas = <&dma 3>;
+	};
+
+	mmio@9011000 {
+	    compatible = "comento,mmio", "arm,primecell";
+	    clock-names = "apb_pclk";
+	    clocks = <&clock>;
+	    interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
+	    reg = <0x00 0x9011000 0x00 0x1000>;
+            dma-names = "tx", "rx";
+            dmas =  <&dma 0x0>, <&dma 0x1>;
+	};
+
+    pl181@9013000 {
+        compatible = "arm,pl181", "arm,primecell";
+        clock-names = "apb_pclk";
+        clocks = <&clock>;
+        // 여기에 명시된 장치를 사용하여
+        // MMC와 SD카드에 전원을 켜거나 끄므로 반드시 명시해야 함
+        vmmc-supply = <&regulator>;
+        // 읽기와 쓰기 각각에 대해 인터럽트 사용
+        interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+        reg = <0x00 0x9013000 0x00 0x1000>;
+    };
+
+    // 전원을 공급하는 장치인 PMIC 명시
+    regulator: fixed {
+        // 고정된 전압을 공급하는 장치
+        compatible = "regulator-fixed";
+        // 전원 공급 장치는 항상 켜져 있음을 명시
+        regulator-always-on;
+        // 전압의 조정 가능 범위를 명시
+        // MMC와 SD카드의 전원 기본 전압은 3.3V
+        // QEMU에서는 실제로 전압이 조정되지는 않으므로 최소/최대를 같게
+        regulator-max-microvolt = <3300000>;
+        regulator-min-microvolt = <3300000>;
+        regulator-name = "3V3";
+    };
+
+};
+

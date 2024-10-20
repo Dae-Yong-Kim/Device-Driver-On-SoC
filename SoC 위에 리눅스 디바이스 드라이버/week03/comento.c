@@ -15,6 +15,7 @@
 #include "target/arm/cpu.h"
 #include "hw/intc/arm_gicv3_common.h"
 #include "hw/char/pl011.h"
+#include "hw/sd/sd.h"
 #include "monitor/qdev.h"
 
 #define NUM_IRQS 256
@@ -26,9 +27,13 @@
 #define COMENTO_BASE_GIC_DIST   0x09000000
 #define COMENTO_BASE_UART      0x09010000
 #define COMENTO_BASE_MMIO      0x09011000
+#define COMENTO_BASE_DMA       0x09012000
+#define COMENTO_BASE_MMC       0x09013000
 
 #define COMENTO_IRQ_UART       0
 #define COMENTO_IRQ_MMIO       1
+#define COMENTO_IRQ_MMC       2
+#define COMENTO_IRQ_DMA        15
 
 #define COMENTO_SIZE_GIC_REDIST 0x01000000
 
@@ -43,6 +48,7 @@ struct ComentoMachineState {
     MachineState parent;
     struct arm_boot_info bootinfo;
     DeviceState *gic;
+    DeviceState *dma;
 };
 OBJECT_DECLARE_TYPE(ComentoMachineState, ComentoMachineClass, \
                     COMENTO_MACHINE)
@@ -78,6 +84,61 @@ static void create_mmio(const ComentoMachineState *vms, MemoryRegion *mem)
     sysbus_realize_and_unref(s, &error_fatal);
     memory_region_add_subregion(mem, base, sysbus_mmio_get_region(s, 0));
     sysbus_connect_irq(s, 0, qdev_get_gpio_in(vms->gic, irq));
+
+    sysbus_connect_irq(s, 1, qdev_get_gpio_in(vms->dma, 0));
+    sysbus_connect_irq(s, 2, qdev_get_gpio_in(vms->dma, 1));
+}
+
+static void create_dma(ComentoMachineState *vms, MemoryRegion *mem)
+{
+    hwaddr base = COMENTO_BASE_DMA;
+    int irq = COMENTO_IRQ_DMA;
+    SysBusDevice * busdev;
+    int i;
+
+    // ARM PL330 DMA 컨트롤러 장치 추가
+    vms->dma = qdev_new("pl330");
+
+    // DMA 컨트롤러가 접근할 메모리를 설정
+    object_property_set_link(OBJECT(vms->dma), "memory", OBJECT(mem),
+                             &error_fatal);
+
+    busdev = SYS_BUS_DEVICE(vms->dma);
+    sysbus_realize_and_unref(busdev, &error_fatal);
+    sysbus_mmio_map(busdev, 0, base);
+    // DMA 컨트롤러에서 오류가 발생했을 때 통지할 인터럽트 할당
+    sysbus_connect_irq(busdev, 0,  qdev_get_gpio_in(vms->gic, irq));
+
+    // DMA 컨트롤러에서 발생하는 이벤트를 처리하기 위한 인터럽트 할당
+    for (i = 0; i < 16; i++) {
+        sysbus_connect_irq(busdev, i + 1,
+                            qdev_get_gpio_in(vms->gic, irq + i + 1));
+    }
+    //DMA 컨트롤러에는 총 1 + 16, 즉 17개의 인터럽트가 할당되게 됨
+}
+
+static void create_mmc(const ComentoMachineState *vms) {
+    hwaddr base = COMENTO_BASE_MMC;
+    int irq = COMENTO_IRQ_MMC;
+    DeviceState *dev;
+    DriveInfo *dinfo;
+    // ARM PL181 MMC 인터페이스 장치 추가
+    dev = sysbus_create_varargs("pl181", base,
+                   // 송신과 수신 위한 인터럽트 추가
+                   qdev_get_gpio_in(vms->gic, irq),
+                   qdev_get_gpio_in(vms->gic, irq + 1),
+                   NULL);
+    // QEMU의 -drive format=raw,file=<이미지 이름>,if=sd 옵션으로 지정된
+    // SD 카드 이미지 정보 얻기
+    dinfo = drive_get(IF_SD, 0, 0);
+    if (dinfo) {
+        DeviceState *card;
+        card = qdev_new(TYPE_SD_CARD); // SD 카드 장치 추가
+        qdev_prop_set_drive_err(card, "drive", blk_by_legacy_dinfo(dinfo),
+                                &error_fatal);
+        qdev_realize_and_unref(card, qdev_get_child_bus(dev, "sd-bus"),
+                               &error_fatal); // SD 카드 삽입
+    }
 }
 
 
@@ -150,7 +211,10 @@ static void machcomento_init(MachineState *machine)
     vms->bootinfo.psci_conduit = QEMU_PSCI_CONDUIT_HVC;
     create_gic(vms);
     create_uart(vms, sysmem);
+    create_dma(vms, sysmem);
     create_mmio(vms, sysmem);
+    create_mmc(vms);
+    
 
     arm_load_kernel(ARM_CPU(first_cpu), machine, &vms->bootinfo);
 }
@@ -177,3 +241,4 @@ static void machcomento_machine_init(void)
     type_register_static(&comento_machine_info);
 }
 type_init(machcomento_machine_init);
+
