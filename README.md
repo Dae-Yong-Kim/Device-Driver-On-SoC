@@ -241,33 +241,32 @@ cat /dev/comento-mmio0
 echo "문자열" > /dev/comento-mmio0
 ```
 # Week03
-## QEMU에 DMA 하드웨어 추가
-1. qemu-8.0.5/hw/arm/comento.c에 추가 (DMA 하드웨어 추가 & DMA에 신호처리 연결)
+## DMA 추가
+1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (DMA 하드웨어 추가 & DMA에 신호처리 연결)
 ```
 week03 레파지토리 확인 (comento.c)
 ```
-2. QEMU 새로 빌드
+1-2. QEMU 새로 빌드
 ```
 cd qemu-8.0.5/build; make -j32
 ```
-## DMA 다바이스 트리, 드라이버 추가
-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가
+2-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (DMA 디바이스 드라이버 사용)
 ```
 CONFIG_DMADEVICES=y
 CONFIG_DMA_ENGINE=y
 CONFIG_PL330_DMA=y
 ```
-2. 디바이스 트리에 MMIO 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+3-1. 디바이스 트리에 DMA 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
 ```
 week03 레파지토리 확인 (comento.dts)
 ```
-3. Linux 새로 빌드
+3-2. Linux 새로 빌드
 ```
 cd linux-6.5.5
 ARCH=arm64 LLVM=1 make comento_defconfig
 ARCH=arm64 LLVM=1 make -j32
 ```
-## MMIO 하드웨어, 드라이버 수정, 다바이스 트리
+## MMIO 하드웨어, 드라이버, 다바이스 트리 수정
 1-1. qemu-8.0.5/hw/misc/comento/mmio.c 추가 (MMIO 하드웨어 수정)
 ```
 week03 레파지토리 확인 (mmio.c)
@@ -306,4 +305,72 @@ cd qemu-8.0.5/scripts/qmp
 ```
 cat /dev/comento-mmio0
 echo "문자열" > /dev/comento-mmio0
+```
+## MMC 추가
+1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (MMC 하드웨어 추가)
+```
+week03 레파지토리 확인 (comento.c)
+```
+1-2. QEMU 새로 빌드
+```
+cd qemu-8.0.5/build; make -j32
+```
+2-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (MMC 디바이스 드라이버 사용)
+```
+CONFIG_MMC=y
+CONFIG_MMC_ARMMMCI=y
+// PMIC로 사용하는 regulator-fixed 관련 설정
+CONFIG_REGULATOR=y
+CONFIG_REGULATOR_FIXED_VOLTAGE=y
+```
+3-1. 디바이스 트리에 MMC 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+```
+week03 레파지토리 확인 (comento.dts)
+```
+3-2. Linux 새로 빌드
+```
+cd linux-6.5.5
+ARCH=arm64 LLVM=1 make comento_defconfig
+ARCH=arm64 LLVM=1 make -j32
+```
+## SD카드 이미지 생성하기 (/에서 실행)
+1. 목표로하는 크기의 0으로 채워진 이미지 파일 생성
+```
+dd if=/dev/zero of=sdcard.img count=1 bs=64M
+```
+2. 이미지 파일에 파티션 정보를 추가
+```
+fdisk sdcard.img
+• n<엔터> p<엔터> 1<엔터> <엔터> <엔터> w<엔터>
+```
+3. 이미지 파일을 Loop 디바이스로 설정
+```
+sudo losetup -Pf --show sdcard.img
+```
+4. Loop 디바이스의 첫 번째 파티션을 ext4 형식으로 포맷
+```
+sudo mkfs.ext4 <loop 디바이스 경로>p1
+```
+5. 포맷한 파티션과 빌드루트에서 생성된 이미지 동시에 마운트
+```
+mkdir mnt1 mnt2
+sudo mount -o loop <loop 디바이스 경로>p1 mnt1
+sudo mount -o loop <빌드루트 디렉토리>/output/images/rootfs.ext4 mnt2
+```
+6. 마운트된 빌드루트 이미지의 내용을 마운트된 포맷 파티션으로 복사
+```
+sudo cp –R mnt2/* mnt1/.
+```
+7. 마운트한 디렉토리를 모두 언마운트
+```
+sync; sudo umount mnt1 mnt2
+```
+8. Loop 디바이스 해제
+```
+sudo losetup -d <loop 디바이스 경로>
+```
+## 작동 확인
+1. QEMU 실행시 initrd 사용 X
+```
+qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -drive format=raw,file=sdcard.img,if=sd -append "root=/dev/mmcblk0p1 console=ttyAMA0 rootwait" -dtb linux-6.5.5/arch/arm64/boot/dts/comento/comento.dtb -qmp unix:/tmp/qmp.sock,server,nowait -nographic -M comento -m 1G -smp 4
 ```
