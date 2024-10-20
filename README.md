@@ -181,7 +181,7 @@ week02 레파지토리 확인 (comento.c)
 ```
 cd qemu-8.0.5/build; make -j<코어 개수>
 ```
-## MMIO 하드웨어 드라이버 만들기
+## MMIO 다바이스 트리, 드라이버 추가
 1. 디바이스 트리에 MMIO 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
 ```
 week02 레파지토리 확인 (comento.dts)
@@ -221,6 +221,73 @@ week02 레파지토리 확인 (mmio-driver.c)
 ```
 4. linux-6.5.5/에서 빌드
 ```
+ARCH=arm64 LLVM=1 make -j32
+```
+## 작동 확인
+1. QEMU 실행시 QMP를 보내기 위한 소켓을 추가
+```
+qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -initrd buildroot-2023.08/output/images/rootfs.cpio.gz -append "console=ttyAMA0" -dtb linux-6.5.5/arch/arm64/boot/dts/comento/comento.dtb -nographic -M comento -m 1G -smp 2 -qmp unix:/tmp/qmp.sock,server,nowait
+```
+2. QMP 스크립트를 사용
+```
+cd qemu-8.0.5/scripts/qmp
+목록 조회 : qemu/scripts/qmp/qom-list --socket /tmp/qmp.sock /machine/peripheral/
+속성 읽기 : ./qom-get --socket /tmp/qmp.sock /machine/peripheral/mmio-comento.data
+속성 쓰기 : ./qom-set --socket /tmp/qmp.sock /machine/peripheral/mmio-comento.data "문자열"
+```
+3. 리눅스에서 /dev/comento-mmio0를 통해 송수신
+```
+cat /dev/comento-mmio0
+echo "문자열" > /dev/comento-mmio0
+```
+# Week03
+## QEMU에 DMA 하드웨어 추가
+1. qemu-8.0.5/hw/arm/comento.c에 추가 (DMA 하드웨어 추가 & DMA에 인터럽트 연)
+```
+week03 레파지토리 확인 (comento.c)
+```
+2. QEMU 새로 빌드
+```
+cd qemu-8.0.5/build; make -j32
+```
+## DMA 다바이스 트리, 드라이버 추가
+1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가
+```
+CONFIG_DMADEVICES=y
+CONFIG_DMA_ENGINE=y
+CONFIG_PL330_DMA=y
+```
+2. 디바이스 트리에 MMIO 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+```
+week03 레파지토리 확인 (comento.dts)
+```
+3. Linux 새로 빌드
+```
+cd linux-6.5.5
+ARCH=arm64 LLVM=1 make comento_defconfig
+ARCH=arm64 LLVM=1 make -j32
+```
+## MMIO 하드웨어, 드라이버 수정, 다바이스 트리
+1-1. qemu-8.0.5/hw/misc/comento/mmio.c 추가 (MMIO 하드웨어 수정)
+```
+week03 레파지토리 확인 (mmio.c)
+```
+1-2. 빌드
+```
+cd qemu-8.0.5/build; make -j32
+```
+2-1. linux-6.5.5/drivers/comento/mmio.c 추가 (MMIO 드라이버 수정)
+```
+week03 레파지토리 확인 (mmio-driver.c)
+```
+3-1. linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts 추가 (MMIO 디바이스 트리 수정)
+```
+week03 레파지토리 확인 (comento.dts)
+```
+3-2. 빌드
+```
+cd linux-6.5.5
+ARCH=arm64 LLVM=1 make comento_defconfig
 ARCH=arm64 LLVM=1 make -j32
 ```
 ## 작동 확인
