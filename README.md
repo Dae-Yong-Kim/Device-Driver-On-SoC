@@ -333,7 +333,7 @@ cd linux-6.5.5
 ARCH=arm64 LLVM=1 make comento_defconfig
 ARCH=arm64 LLVM=1 make -j32
 ```
-## SD카드 이미지 생성하기 (/에서 실행)
+## SD카드 이미지 생성하기 (~/에서 실행)
 1. 목표로하는 크기의 0으로 채워진 이미지 파일 생성
 ```
 dd if=/dev/zero of=sdcard.img count=1 bs=64M
