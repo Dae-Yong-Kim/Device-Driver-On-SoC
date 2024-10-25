@@ -361,7 +361,7 @@ sudo mount -o loop <빌드루트 디렉토리>/output/images/rootfs.ext4 mnt2
 ```
 6. 마운트된 빌드루트 이미지의 내용을 마운트된 포맷 파티션으로 복사
 ```
-sudo cp –R mnt2/* mnt1/.
+sudo cp -R mnt2/* mnt1/.
 ```
 7. 마운트한 디렉토리를 모두 언마운트
 ```
