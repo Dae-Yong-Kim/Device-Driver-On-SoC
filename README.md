@@ -378,23 +378,35 @@ qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -
 ```
 # Week04
 ## GPIO 추가
-1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (DMA 하드웨어 추가 & DMA에 신호처리 연결)
+1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (GPIO 하드웨어 추가 & GPIO 사용할 leds_and_button 추가)
 ```
 week04 레파지토리 확인 (comento.c)
 ```
-1-2. QEMU 새로 빌드
+1-2. qemu-8.0.5/hw/misc/comento/gpio.c 추가 (GPIO 하드웨어 추가)
+```
+week04 레파지토리 확인 (gpio.c)
+```
+1-3. qemu-8.0.5/hw/misc/comento/meson.build에 추가
+```
+softmmu_ss.add(when: 'CONFIG_COMENTO', if_true: files('gpio.c'))
+```
+1-4. QEMU 새로 빌드
 ```
 cd qemu-8.0.5/build; make -j32
 ```
-2-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (DMA 디바이스 드라이버 사용)
+2-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (GPIO 디바이스 드라이버 사용)
 ```
-CONFIG_DMADEVICES=y
-CONFIG_DMA_ENGINE=y
-CONFIG_PL330_DMA=y
+CONFIG_GPIO_PL061=y
+# libgpiod를 사용하기 위해서 필요한 설정
+CONFIG_GPIOLIB=y
+# sysfs를 사용하는 옛날 방식으로 GPIO를 사용하기 위한 설정
+CONFIG_GPIO_SYSFS=y
+# GPIO_SYSFS는 일반적인 설정이 아니므로 전문가 사용자를 위한 설정 필요
+CONFIG_EXPERT=y
 ```
-3-1. 디바이스 트리에 DMA 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+3-1. 디바이스 트리에 GPIO 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
 ```
-week03 레파지토리 확인 (comento.dts)
+week04 레파지토리 확인 (comento.dts)
 ```
 3-2. Linux 새로 빌드
 ```
@@ -402,3 +414,69 @@ cd linux-6.5.5
 ARCH=arm64 LLVM=1 make comento_defconfig
 ARCH=arm64 LLVM=1 make -j32
 ```
+## Rootfs에 libgpiod와 libgpiod 툴 추가하기
+1-1. Rootfs에 libgpiod 추가 설정
+```
+cd buildroot-2023.08
+make menuconfig
+	- Target packages -> Libraries -> Hardware handling -> libgpiod : 선택
+	- Target packages -> Libraries -> Hardware handling -> libgpiod -> install tools : 선택
+```
+1-2. 빌드 루트 빌드
+```
+make -j32
+```
+2-1. Rootfs를 SC 카드 이미지로 복사
+```
+sudo losetup -Pf --show sdcard.img
+sudo mkfs.ext4 <loop 디바이스 경로>p1
+mkdir mnt1 mnt2
+sudo mount -o loop <loop 디바이스 경로>p1 mnt1
+sudo mount -o loop <빌드루트 디렉토리>/output/images/rootfs.ext4 mnt2
+sudo cp –R mnt2/* mnt1/.
+sync; sudo umount mnt1 mnt2
+sudo losetup -d <loop 디바이스 경로>
+```
+## 작동 확인
+1. QEMU 실행시 initrd 사용 X
+```
+qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -drive format=raw,file=sdcard.img,if=sd -append "root=/dev/mmcblk0p1 console=ttyAMA0 rootwait" -dtb linux-6.5.5/arch/arm64/boot/dts/comento/comento.dtb -qmp unix:/tmp/qmp.sock,server,nowait -nographic -M comento -m 1G -smp 4
+```
+2. sysfs를 사용하는 GPIO 실습
+```
+cd /sys/class/gpio
+ls (존재하는 gpiochip 확인(gpiochip512))
+echo 512 > export (512 + 0 -> 0번 핀 생성)
+echo 513 > export (512 + 1 -> 1번 핀 생성)
+echo 514 > export (512 + 2 -> 2번 핀 생성)
+echo 515 > export (512 + 3 -> 3번 핀 생성)
+ls (핀이 생성된 것이 보임)
+echo out > gpio512/direction (0번핀 출력으로 설정)
+echo out > gpio513/direction (1번핀 출력으로 설정)
+echo out > gpio514/direction (2번핀 출력으로 설정)
+echo in > gpio515/direction (3번핀 입력으로 설정)
+cat gpio512/direction (설정 확인)
+cat gpio513/direction (설정 확인)
+cat gpio514/direction (설정 확인)
+cat gpio515/direction (설정 확인)
+echo 1 > gpio512/value (출력 high로 변경)
+echo 1 > gpio513/value (출력 high로 변경)
+echo 1 > gpio514/value (출력 high로 변경)
+echo 0 > gpio512/value (출력 low로 변경)
+echo 0 > gpio513/value (출력 low로 변경)
+echo 0 > gpio514/value (출력 low로 변경)
+echo 1 > gpio515/value (에러 발생 입력은 sysfs로 값 설정 불가능)
+cat gpio515/value (입력 확인 qmp로 바꾸고 확인)
+```
+```
+cd qemu-8.0.5/scripts/qmp
+목록 조회 : ./qom-list --socket /tmp/qmp.sock /machine/peripheral/
+함수(?) 조회 : ./qom-list --socket /tmp/qmp.sock /machine/peripheral/leds-and-button
+속성 읽기 : ./qom-get --socket /tmp/qmp.sock /machine/peripheral/leds-and-button.key
+속성 쓰기 : ./qom-set --socket /tmp/qmp.sock /machine/peripheral/leds-and-button.key True/False
+```
+3. libgpiod 툴 사용하여 GPIO 테스트하기
+```
+
+```
+4. 
