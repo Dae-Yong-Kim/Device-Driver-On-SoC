@@ -376,3 +376,29 @@ sudo losetup -d <loop 디바이스 경로>
 ```
 qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -drive format=raw,file=sdcard.img,if=sd -append "root=/dev/mmcblk0p1 console=ttyAMA0 rootwait" -dtb linux-6.5.5/arch/arm64/boot/dts/comento/comento.dtb -qmp unix:/tmp/qmp.sock,server,nowait -nographic -M comento -m 1G -smp 4
 ```
+# Week04
+## GPIO 추가
+1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (DMA 하드웨어 추가 & DMA에 신호처리 연결)
+```
+week04 레파지토리 확인 (comento.c)
+```
+1-2. QEMU 새로 빌드
+```
+cd qemu-8.0.5/build; make -j32
+```
+2-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (DMA 디바이스 드라이버 사용)
+```
+CONFIG_DMADEVICES=y
+CONFIG_DMA_ENGINE=y
+CONFIG_PL330_DMA=y
+```
+3-1. 디바이스 트리에 DMA 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+```
+week03 레파지토리 확인 (comento.dts)
+```
+3-2. Linux 새로 빌드
+```
+cd linux-6.5.5
+ARCH=arm64 LLVM=1 make comento_defconfig
+ARCH=arm64 LLVM=1 make -j32
+```
