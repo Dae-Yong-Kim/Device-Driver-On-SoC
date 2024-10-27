@@ -1,6 +1,7 @@
 /dts-v1/;
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
         model = "Comento SoC";
@@ -111,6 +112,11 @@
 	    reg = <0x00 0x9011000 0x00 0x1000>;
             dma-names = "tx", "rx";
             dmas =  <&dma 0x0>, <&dma 0x1>;
+
+            led-gpios = <&gpio 0 GPIO_ACTIVE_HIGH>,
+                        <&gpio 1 GPIO_ACTIVE_HIGH>,
+                        <&gpio 2 GPIO_ACTIVE_HIGH>;
+            button-gpio = <&gpio 3 GPIO_ACTIVE_HIGH>;
 	};
 
     pl181@9013000 {
@@ -140,4 +146,22 @@
         regulator-name = "3V3";
     };
 
+    gpio: pl061@9012000 {
+        // 지금 명시하는 장치가 GPIO chip임을 명시
+        gpio-controller;
+        compatible = "arm,pl061","arm,primecell";
+        // GPIO chip의 인터럽트와 MMIO 주소 명시
+        interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
+        reg = <0x00 0x9014000 0x00 0x1000>;
+        // AMBA 장치이므로 클럭 필요
+        clock-names = "apb_pclk";
+        clocks = <&clock>;
+        // GPIO chip을 참조할 때 숫자는 2칸 사용
+        // 첫 번째 칸은 어떤 핀을 참조할지
+        // 두 번째 칸은 값을 설정할 때 1이 High인지 low인지 설정
+        // 일반적으로 1은 High를 의미하므로 GPIO_ACTIVE_HIGH로 설정
+        #gpio-cells = <2>;
+    };
+
 };
+

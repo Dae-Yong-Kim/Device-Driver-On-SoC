@@ -29,10 +29,12 @@
 #define COMENTO_BASE_MMIO      0x09011000
 #define COMENTO_BASE_DMA       0x09012000
 #define COMENTO_BASE_MMC       0x09013000
+#define COMENTO_BASE_GPIO       0x09014000
 
 #define COMENTO_IRQ_UART       0
 #define COMENTO_IRQ_MMIO       1
-#define COMENTO_IRQ_MMC       2
+#define COMENTO_IRQ_MMC        2
+#define COMENTO_IRQ_GPIO       4
 #define COMENTO_IRQ_DMA        15
 
 #define COMENTO_SIZE_GIC_REDIST 0x01000000
@@ -49,6 +51,7 @@ struct ComentoMachineState {
     struct arm_boot_info bootinfo;
     DeviceState *gic;
     DeviceState *dma;
+    DeviceState *gpio;
 };
 OBJECT_DECLARE_TYPE(ComentoMachineState, ComentoMachineClass, \
                     COMENTO_MACHINE)
@@ -178,6 +181,42 @@ static void create_gic(ComentoMachineState *vms)
     }
 }
 
+static void create_gpio(ComentoMachineState *vms, MemoryRegion *mem)
+{
+    hwaddr base = COMENTO_BASE_GPIO;
+    int irq = COMENTO_IRQ_GPIO;
+    SysBusDevice *s;
+
+    // ARM PL061 GPIO chip 장치 추가
+    vms->gpio = qdev_new("pl061");
+
+    // GPIO 핀에 풀업 저항 대신 풀다운 저항이 달려 있다고 가정
+    qdev_prop_set_uint32(vms->gpio, "pullups", 0);
+    qdev_prop_set_uint32(vms->gpio, "pulldowns", 0xff);
+
+    s = SYS_BUS_DEVICE(vms->gpio);
+    sysbus_realize_and_unref(s, &error_fatal);
+    memory_region_add_subregion(mem, base,
+                                    sysbus_mmio_get_region(s, 0));
+    // GPIO 핀의 값이 변했을 때 발생할 인터럽트 (레벨 트리거, 엣지 트리거)
+    sysbus_connect_irq(s, 0, qdev_get_gpio_in(vms->gic, irq));
+}
+
+static void create_leds_and_button(ComentoMachineState *vms)
+{
+    DeviceState *dev;
+    char name[] = "leds-and-button";
+    dev = qdev_new(name); // hw/misc/comento/gpio.c에 추가한 하드웨어 생성
+    qdev_set_id(dev, name, NULL); // QMP 스크립트에서 사용할 이름 지정
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+    // GPIO의 0~3번 핀을 하드웨어에 연결
+    qdev_connect_gpio_out(vms->gpio, 0, qdev_get_gpio_in(dev, 0));
+    qdev_connect_gpio_out(vms->gpio, 1, qdev_get_gpio_in(dev, 1));
+    qdev_connect_gpio_out(vms->gpio, 2, qdev_get_gpio_in(dev, 2));
+    qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(vms->gpio, 3));
+}
+
+
 static void machcomento_init(MachineState *machine)
 {
     ComentoMachineState *vms = COMENTO_MACHINE(machine);
@@ -214,7 +253,8 @@ static void machcomento_init(MachineState *machine)
     create_dma(vms, sysmem);
     create_mmio(vms, sysmem);
     create_mmc(vms);
-    
+    create_gpio(vms, sysmem);
+    create_leds_and_button(vms);
 
     arm_load_kernel(ARM_CPU(first_cpu), machine, &vms->bootinfo);
 }
@@ -241,3 +281,4 @@ static void machcomento_machine_init(void)
     type_register_static(&comento_machine_info);
 }
 type_init(machcomento_machine_init);
+
