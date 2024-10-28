@@ -558,17 +558,12 @@ week04 레파지토리 확인 (user-gpio.c)
 ```
 4-2. 빌드
 ```
-<빌드루트디렉토리>/output/host/bin/aarch64
--buildroot-linux-gnu-gcc gpio-sample.c -o 
-gpio-sample –lgpiod
-sudo losetup -Pf --show sdcard.img
-sudo mkfs.ext4 <loop 디바이스 경로>p1
-mkdir mnt1 mnt2
-sudo mount -o loop <loop 디바이스 경로>p1 mnt1
-sudo mount -o loop <빌드루트 디렉토리>/output/images/rootfs.ext4 mnt2
-sudo cp –R mnt2/* mnt1/.
-sync; sudo umount mnt1 mnt2
-sudo losetup -d <loop 디바이스 경로>
+<빌드루트디렉토리>/output/host/bin/aarch64 -buildroot-linux-gnu-gcc gpio-sample.c -o gpio-sample –lgpiod
+sudo losetup -Pf --show sdcard1.img
+sudo mount <loop 경로>p1 /mnt
+sudo cp gpio-sample /mnt/usr/bin/.
+sync; sudo umount /mnt
+sudo losetup -d <loop 경로>
 ```
 4-3. libgpiod 사용 실습
 ```
