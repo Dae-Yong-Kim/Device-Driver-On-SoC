@@ -554,7 +554,7 @@ gpiomon 0 3
 ``` 
 4-1. libgpiod 라이브러리를 사용한 프로그램 만들기 (~/gpio.c 만들기)
 ```
-week04 레파지토리 확인 (gpio.c)
+week04 레파지토리 확인 (user-gpio.c)
 ```
 4-2. 빌드
 ```
