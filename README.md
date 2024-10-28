@@ -501,63 +501,6 @@ week04 레파지토리 확인 (gpio.c)
 ```
 4-2. 빌드
 ```
-<빌드루트디렉토리>/output/host/bin/aarch64
--buildroot-linux-gnu-gcc gpio-sample.c -o 
-gpio-sample –lgpiod
-sudo losetup -Pf --show sdcard.img
-sudo mkfs.ext4 <loop 디바이스 경로>p1
-mkdir mnt1 mnt2
-sudo mount -o loop <loop 디바이스 경로>p1 mnt1
-sudo mount -o loop <빌드루트 디렉토리>/output/images/rootfs.ext4 mnt2
-sudo cp –R mnt2/* mnt1/.
-sync; sudo umount mnt1 mnt2
-sudo losetup -d <loop 디바이스 경로>
-```
-4-3. libgpiod 사용 실습
-```
-gpio-sample
-```
-## 드라이버에서 GPIO 사용1 > gpio513/value (출력 high로 변경)
-echo 1 > gpio514/value (출력 high로 변경)
-echo 0 > gpio512/value (출력 low로 변경)
-echo 0 > gpio513/value (출력 low로 변경)
-echo 0 > gpio514/value (출력 low로 변경)
-echo 1 > gpio515/value (에러 발생 입력은 sysfs로 값 설정 불가능)
-cat gpio515/value (입력 확인 qmp로 바꾸고 확인)
-```
-```
-cd qemu-8.0.5/scripts/qmp
-목록 조회 : ./qom-list --socket /tmp/qmp.sock /machine/peripheral/
-함수(?) 조회 : ./qom-list --socket /tmp/qmp.sock /machine/peripheral/leds-and-button
-속성 읽기 : ./qom-get --socket /tmp/qmp.sock /machine/peripheral/leds-and-button.key
-속성 쓰기 : ./qom-set --socket /tmp/qmp.sock /machine/peripheral/leds-and-button.key True/False
-```
-3. libgpiod 툴 사용하여 GPIO 테스트하기
-```
-gpiodetect (gipochip 찾기)
-ls /dev/gpiochip0
-gpioinfo (sysfs에서 사용하는 핀은 사용 불가능)
-echo 512 > unexport (512 + 0 -> 0번 핀 삭제)
-echo 513 > unexport (512 + 1 -> 1번 핀 삭제)
-echo 514 > unexport (512 + 2 -> 2번 핀 삭제)
-echo 515 > unexport (512 + 3 -> 3번 핀 삭제)
-gpioinfo
-gpioget 0 0 (0번 핀을 input으로 변경)
-gpioset 0 0=1
-gpioset 0 0=0
-gpioset 0 1=1
-gpioset 0 1=0
-gpioset 0 2=1
-gpioset 0 2=0
-gpioget 0 3
-gpiomon 0 3
-``` 
-4-1. libgpiod 라이브러리를 사용한 프로그램 만들기 (~/gpio.c 만들기)
-```
-week04 레파지토리 확인 (user-gpio.c)
-```
-4-2. 빌드
-```
 <빌드루트디렉토리>/output/host/bin/aarch64 -buildroot-linux-gnu-gcc gpio-sample.c -o gpio-sample –lgpiod
 sudo losetup -Pf --show sdcard1.img
 sudo mount <loop 경로>p1 /mnt
@@ -569,7 +512,7 @@ sudo losetup -d <loop 경로>
 ```
 gpio-sample
 ```
-## 드라이버에서 GPIO 사용
+## 드라이버에서 GPIO 사용1 > gpio513/value (출력 high로 변경)
 1. linux/arch/arm64/boot/dts/comento/comento.dts에 추가
 ```
 led-gpios = <&gpio 0 GPIO_ACTIVE_HIGH>,
