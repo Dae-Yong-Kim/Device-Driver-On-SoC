@@ -497,7 +497,7 @@ gpiomon 0 3
 ``` 
 4-1. libgpiod 라이브러리를 사용한 프로그램 만들기 (~/gpio.c 만들기)
 ```
-week04 레파지토리 확인 (gpio.c)
+week04 레파지토리 확인 (user-gpio.c)
 ```
 4-2. 빌드
 ```
@@ -512,7 +512,7 @@ sudo losetup -d <loop 경로>
 ```
 gpio-sample
 ```
-## 드라이버에서 GPIO 사용1 > gpio513/value (출력 high로 변경)
+## 드라이버에서 GPIO 사용
 1. linux/arch/arm64/boot/dts/comento/comento.dts에 추가
 ```
 led-gpios = <&gpio 0 GPIO_ACTIVE_HIGH>,
