@@ -502,7 +502,7 @@ week04 레파지토리 확인 (user-gpio.c)
 4-2. 빌드
 ```
 <빌드루트디렉토리>/output/host/bin/aarch64 -buildroot-linux-gnu-gcc gpio-sample.c -o gpio-sample –lgpiod
-sudo losetup -Pf --show sdcard1.img
+sudo losetup -Pf --show sdcard.img
 sudo mount <loop 경로>p1 /mnt
 sudo cp gpio-sample /mnt/usr/bin/.
 sync; sudo umount /mnt
