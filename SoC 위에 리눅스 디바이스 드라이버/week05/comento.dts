@@ -163,4 +163,48 @@
         #gpio-cells = <2>;
     };
 
+    spi@9015000 {
+        compatible = "arm,pl022", "arm,primecell";
+        // SPI 컨트롤러의 인터럽트와 MMIO 주소 명시
+        interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+        reg = <0x00 0x9015000 0x00 0x1000>;
+        // AMBA 장치이므로 클럭 필요
+        clock-names = "apb_pclk";
+        clocks = <&clock>;
+        // SPI 디바이스를 명시할 때 숫자는 1칸 사용
+        #address-cells = <1>;
+        // SPI 디바이스를 명시할 때 크기는 필요 없으므로 0칸으로 지정
+        #size-cells = <0>;
+
+        // 칩선택으로 사용하려는 GPIO 핀의 개수 명시
+        num-cs = <3>;
+
+        // 칩선택으로 사용하려고 하는 GPIO 핀 명시
+        // 슬레이브가 GPIO 핀을 칩선택으로 사용하지 않는다면, 0으로 지정
+        cs-gpio = <&gpio 4 IRQ_TYPE_LEVEL_HIGH>,
+                  <&gpio 5 IRQ_TYPE_LEVEL_HIGH>,
+                  <0>;
+        spidev@0 {
+            // 리눅스에서는 SPIDEV를 사용하는 것을 추천하지 않음
+            // (주변장치를 위한 전용의 드라이버를 만드는 것을 추천함)
+            // SPIDEV를 사용해야 하는 주변장치 중 아무거나 하나를 골라
+            // compatible에 명시해야 SPIDEV 사용 가능
+            compatible = "comento-spi";
+            spi-max-frequency = <1000000>; // 최대 1Mbps로 SPI의 속도 지정
+            // 0번 디바이스 임을 명시
+            // cs-gpio의 0번째 항목(GPIO 4번 핀)이 칩선택으로 사용됨
+            reg = <0>;
+        };
+        spidev@1 {
+            compatible = "comento-spi";
+            spi-max-frequency = <1000000>;
+            // 1번 디바이스 임을 명시
+            // cs-gpio의 1번째 항목(GPIO 4번 핀)이 칩선택으로 사용됨
+            reg = <1>;
+        };
+
+    };
+
+
 };
+

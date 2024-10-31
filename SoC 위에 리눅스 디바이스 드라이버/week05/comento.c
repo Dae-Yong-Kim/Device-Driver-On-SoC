@@ -17,6 +17,7 @@
 #include "hw/char/pl011.h"
 #include "hw/sd/sd.h"
 #include "monitor/qdev.h"
+#include "hw/ssi/ssi.h"
 
 #define NUM_IRQS 256
 
@@ -30,11 +31,13 @@
 #define COMENTO_BASE_DMA       0x09012000
 #define COMENTO_BASE_MMC       0x09013000
 #define COMENTO_BASE_GPIO       0x09014000
+#define COMENTO_BASE_SPI       0x09015000
 
 #define COMENTO_IRQ_UART       0
 #define COMENTO_IRQ_MMIO       1
 #define COMENTO_IRQ_MMC        2
 #define COMENTO_IRQ_GPIO       4
+#define COMENTO_IRQ_SPI        5
 #define COMENTO_IRQ_DMA        15
 
 #define COMENTO_SIZE_GIC_REDIST 0x01000000
@@ -52,6 +55,8 @@ struct ComentoMachineState {
     DeviceState *gic;
     DeviceState *dma;
     DeviceState *gpio;
+    DeviceState *spi;
+    
 };
 OBJECT_DECLARE_TYPE(ComentoMachineState, ComentoMachineClass, \
                     COMENTO_MACHINE)
@@ -215,6 +220,36 @@ static void create_leds_and_button(ComentoMachineState *vms)
     qdev_connect_gpio_out(vms->gpio, 2, qdev_get_gpio_in(dev, 2));
     qdev_connect_gpio_out(dev, 0, qdev_get_gpio_in(vms->gpio, 3));
 }
+static void create_spi(ComentoMachineState *vms,  MemoryRegion *mem) {
+    hwaddr base = COMENTO_BASE_SPI;
+    int irq = COMENTO_IRQ_SPI;
+    SysBusDevice *s;
+    char name[] = "spi";
+
+    // ARM PL022 SPI 컨트롤러 장치 추가
+    vms->spi = qdev_new("pl022");
+
+    // QMP 스크립트에서 SPI 버스를 위해 사용할 이름 지정
+    qdev_set_id(vms->spi, name, NULL);
+
+    s = SYS_BUS_DEVICE(vms->spi);
+    sysbus_realize_and_unref(s, &error_fatal);
+    memory_region_add_subregion(mem, base, sysbus_mmio_get_region(s, 0));
+    sysbus_connect_irq(s, 0, qdev_get_gpio_in(vms->gic, irq));
+}
+
+static void create_spi_devs(ComentoMachineState *vms) {
+    DeviceState *dev;
+    void *ssi = qdev_get_child_bus(vms->spi, "ssi");
+    // GPIO 4번핀과 주변장치의 칩선택핀과 연결
+    dev = ssi_create_peripheral(ssi, "ssi-comento");
+    qdev_connect_gpio_out(vms->gpio, 4,
+                   qdev_get_gpio_in_named(dev, SSI_GPIO_CS, 0));
+    // GPIO 5번핀과 주변장치의 칩선택핀과 연결
+    dev = ssi_create_peripheral(ssi, "ssi-comento");
+    qdev_connect_gpio_out(vms->gpio, 5,
+                   qdev_get_gpio_in_named(dev, SSI_GPIO_CS, 0));
+}
 
 
 static void machcomento_init(MachineState *machine)
@@ -255,6 +290,8 @@ static void machcomento_init(MachineState *machine)
     create_mmc(vms);
     create_gpio(vms, sysmem);
     create_leds_and_button(vms);
+    create_spi(vms, sysmem);
+    create_spi_devs(vms);
 
     arm_load_kernel(ARM_CPU(first_cpu), machine, &vms->bootinfo);
 }
@@ -281,3 +318,4 @@ static void machcomento_machine_init(void)
     type_register_static(&comento_machine_info);
 }
 type_init(machcomento_machine_init);
+

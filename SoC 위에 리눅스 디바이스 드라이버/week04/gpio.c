@@ -74,4 +74,3 @@ static void gpio_comento_register_types(void)
 }
 
 type_init(gpio_comento_register_types)
-
