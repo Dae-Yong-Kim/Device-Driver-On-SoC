@@ -535,3 +535,9 @@ ARCH=arm64 LLVM=1 make -j32
 - 수신시 GREEN LED ON/OFF
 - 수신한 데이터가 있으면 BLUE LED ON
 - 버튼이 불리면 수신 버퍼 삭제 & BLUE LED OFF
+# Week05
+## SPI 추가
+1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (GPIO 하드웨어 추가 & GPIO 사용할 leds_and_button 추가)
+```
+week05 레파지토리 확인 (comento.c)
+```
