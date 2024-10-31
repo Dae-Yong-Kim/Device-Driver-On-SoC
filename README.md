@@ -382,7 +382,7 @@ qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -
 ```
 week04 레파지토리 확인 (comento.c)
 ```
-1-2. qemu-8.0.5/hw/misc/comento/gpio.c 추가 (GPIO 하드웨어 추가)
+1-2. qemu-8.0.5/hw/misc/comento/gpio.c 추가 (GPIO 사용 주변장치 추가)
 ```
 week04 레파지토리 확인 (gpio.c)
 ```
@@ -394,7 +394,7 @@ softmmu_ss.add(when: 'CONFIG_COMENTO', if_true: files('gpio.c'))
 ```
 cd qemu-8.0.5/build; make -j32
 ```
-2-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (GPIO 디바이스 드라이버 사용)
+2-1. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (GPIO 디바이스 사용)
 ```
 CONFIG_GPIO_PL061=y
 # libgpiod를 사용하기 위해서 필요한 설정
@@ -404,11 +404,11 @@ CONFIG_GPIO_SYSFS=y
 # GPIO_SYSFS는 일반적인 설정이 아니므로 전문가 사용자를 위한 설정 필요
 CONFIG_EXPERT=y
 ```
-3-1. 디바이스 트리에 GPIO 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+2-2. 디바이스 트리에 GPIO 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
 ```
 week04 레파지토리 확인 (comento.dts)
 ```
-3-2. Linux 새로 빌드
+2-3. Linux 새로 빌드
 ```
 cd linux-6.5.5
 ARCH=arm64 LLVM=1 make comento_defconfig
@@ -537,7 +537,37 @@ ARCH=arm64 LLVM=1 make -j32
 - 버튼이 불리면 수신 버퍼 삭제 & BLUE LED OFF
 # Week05
 ## SPI 추가
-1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (GPIO 하드웨어 추가 & GPIO 사용할 leds_and_button 추가)
+1-1. qemu-8.0.5/hw/arm/comento.c에 추가 (SPI 하드웨어 추가 & SPI 사용 주변장치 추가)
 ```
 week05 레파지토리 확인 (comento.c)
+```
+1-2. qemu-8.0.5/hw/misc/comento/ssio.c 추가 (SPI 사용 주변장치 추가)
+```
+week05 레파지토리 확인 (ssio.c)
+```
+1-3. qemu-8.0.5/hw/misc/comento/meson.build에 추가
+```
+softmmu_ss.add(when: 'CONFIG_COMENTO', if_true: files('ssi.c'))
+```
+1-4. QEMU 새로 빌드
+```
+cd qemu-8.0.5/build; make -j32
+```
+2-1. 디바이스 트리에 SPI 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+```
+week05 레파지토리 확인 (comento.dts)
+```
+2-2. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (SPI 디바이스 사용)
+```
+CONFIG_SPI=y
+CONFIG_SPI_PL022=y
+# SPI 툴을 사용하기 위해 필요한 설정
+# SPI 툴을 사용하기 위해서는 spidev를 사용해야 함
+CONFIG_SPI_SPIDEV=y
+```
+2-3. Linux 새로 빌드
+```
+cd linux-6.5.5
+ARCH=arm64 LLVM=1 make comento_defconfig
+ARCH=arm64 LLVM=1 make -j32
 ```
