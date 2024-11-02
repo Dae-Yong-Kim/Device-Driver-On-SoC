@@ -543,7 +543,7 @@ week05 레파지토리 확인 (comento.c)
 ```
 1-2. qemu-8.0.5/hw/misc/comento/ssi.c 추가 (SPI 사용 주변장치 추가)
 ```
-week05 레파지토리 확인 (ssi.c)
+week05 레파지토리 확인 (qemu-ssi.c)
 ```
 1-3. qemu-8.0.5/hw/misc/comento/meson.build에 추가
 ```
