@@ -554,8 +554,21 @@ softmmu_ss.add(when: 'CONFIG_COMENTO', if_true: files('ssi.c'))
 cd qemu-8.0.5/build; make -j32
 ```
 2-1. 디바이스 트리에 SPI 하드웨어 추가(linux-6.5.5/arch/arm64/boot/dts/comento/comento.dts)
+week05 레파지토리의 comento.dts를 수
 ```
-week05 레파지토리 확인 (comento.dts)
+spi@9015000 {
+ ...
+ spidev@0 {
+ ...
+ compatible = "lwn,bk4";
+ ...
+ };
+ spidev@1 {
+ ...
+ compatible = "lwn,bk4";
+ ...
+ };
+};
 ```
 2-2. linux-6.5.5/arch/arm64/configs/comento_defconfig에 다음 추가 (SPI 디바이스 사용)
 ```
@@ -627,19 +640,7 @@ obj-y += spi.o
 ```
 1-2. linux/arch/arm64/boot/dts/comento/comento.dts에 수정
 ```
-spi@9015000 {
- ...
- spidev@0 {
- ...
- compatible = "comento-spi";
- ...
- };
- spidev@1 {
- ...
- compatible = "lwn,bk4";
- ...
- };
-};
+week05 레파지토리 확인 (comento.dts)
 ```
 1-3. linux/drivers/comento/spi.c 추가
 ```
