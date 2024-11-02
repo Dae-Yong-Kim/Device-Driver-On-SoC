@@ -662,7 +662,7 @@ ls -lah scale
 cat scale
 ```
 ```
-./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[0].scale 25kg
+./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[1].scale 25kg
 ```
 ```
 cat scale
@@ -670,7 +670,7 @@ echo "zero" > scale
 cat scale
 ```
 ```
-./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[0].scale 52kg
+./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[1].scale 52kg
 ```
 ```
 cat scale
