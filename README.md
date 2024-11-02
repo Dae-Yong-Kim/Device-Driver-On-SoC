@@ -541,9 +541,9 @@ ARCH=arm64 LLVM=1 make -j32
 ```
 week05 레파지토리 확인 (comento.c)
 ```
-1-2. qemu-8.0.5/hw/misc/comento/ssio.c 추가 (SPI 사용 주변장치 추가)
+1-2. qemu-8.0.5/hw/misc/comento/ssi.c 추가 (SPI 사용 주변장치 추가)
 ```
-week05 레파지토리 확인 (ssio.c)
+week05 레파지토리 확인 (ssi.c)
 ```
 1-3. qemu-8.0.5/hw/misc/comento/meson.build에 추가
 ```
@@ -570,4 +570,107 @@ CONFIG_SPI_SPIDEV=y
 cd linux-6.5.5
 ARCH=arm64 LLVM=1 make comento_defconfig
 ARCH=arm64 LLVM=1 make -j32
+```
+## Rootfs에 SPI 툴 추가하기
+1-1. Rootfs에 SPI 추가 설정
+```
+cd buildroot-2023.08
+make menuconfig
+	- Target packages -> Libraries -> Hardware handling -> spi-tools : 선택
+```
+1-2. 빌드 루트 빌드
+```
+make -j32
+```
+2-1. Rootfs를 SC 카드 이미지로 복사
+```
+sudo losetup -Pf --show sdcard.img
+sudo mkfs.ext4 <loop 디바이스 경로>p1
+mkdir mnt1 mnt2
+sudo mount -o loop <loop 디바이스 경로>p1 mnt1
+sudo mount -o loop <빌드루트 디렉토리>/output/images/rootfs.ext4 mnt2
+sudo cp –R mnt2/* mnt1/.
+sync; sudo umount mnt1 mnt2
+sudo losetup -d <loop 디바이스 경로>
+```
+## 작동 확인
+1. QEMU 실행시 initrd 사용 X
+```
+qemu-8.0.5/build/qemu-system-aarch64 -kernel linux-6.5.5/arch/arm64/boot/Image -drive format=raw,file=sdcard.img,if=sd -append "root=/dev/mmcblk0p1 console=ttyAMA0 rootwait" -dtb linux-6.5.5/arch/arm64/boot/dts/comento/comento.dtb -qmp unix:/tmp/qmp.sock,server,nowait -nographic -M comento -m 1G -smp 4
+```
+2. SPI 툴 사용하여 SPI 테스트하기
+```
+ls -lah /dev/spidev0*
+spi-config -d /dev/spidev0.0 -q
+printf "\x1\x0\x0" | spi-pipe -d /dev/spidev0.0 -n -1 |hexdump -C
+```
+```
+cd qemu-8.0.5/scripts/qmp
+./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[0].scale 25kg
+```
+```
+printf "\x1\x0\x0" | spi-pipe -d /dev/spidev0.0 -n -1 |hexdump -C
+printf "\x2" | spi-pipe -d /dev/spidev0.0 -n -1 |hexdump -C
+printf "\x1\x0\x0" | spi-pipe -d /dev/spidev0.0 -n -1 |hexdump -C
+```
+```
+./qom-get --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[0].scale
+./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[0].scale 32kg
+```
+```
+printf "\x1\x0\x0" | spi-pipe -d /dev/spidev0.0 -n -1 |hexdump -C
+```
+## 리눅스에 SPI 드라이버 추가
+1. linux/drivers/comento/Makefile에 추가
+```
+obj-y += spi.o
+```
+1-2. linux/arch/arm64/boot/dts/comento/comento.dts에 수정
+```
+spi@9015000 {
+ ...
+ spidev@0 {
+ ...
+ compatible = "comento-spi";
+ ...
+ };
+ spidev@1 {
+ ...
+ compatible = "lwn,bk4";
+ ...
+ };
+};
+```
+1-3. linux/drivers/comento/spi.c 추가
+```
+week05 레파지토리 확인 (spi.c)
+```
+1-4. 빌드
+```
+cd linux-6.5.5
+ARCH=arm64 LLVM=1 make comento_defconfig
+ARCH=arm64 LLVM=1 make -j32
+```
+2. 사용 실습
+```
+ls -lah /dev/spidev0* (디바이스 트리를 변경해서 안나옴)
+ls /sys/bus/spi/devices/
+cd /sys/bus/spi/devices/spi0.1/
+ls
+ls -lah scale
+cat scale
+```
+```
+./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[0].scale 25kg
+```
+```
+cat scale
+echo "zero" > scale
+cat scale
+```
+```
+./qom-set --socket /tmp/qmp.sock /machine/peripheral/spi/ssi/child[0].scale 52kg
+```
+```
+cat scale
 ```
